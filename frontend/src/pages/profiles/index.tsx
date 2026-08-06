@@ -20,7 +20,6 @@ import {
     StopIcon,
     TrashIcon,
 } from "@phosphor-icons/react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
     Card,
     CardContent,
@@ -121,13 +120,14 @@ export function ProfilesPage() {
             profilesMutate(),
         ]);
     }
+
     async function runProfileLifecycleAction(
         action: () => Promise<unknown>,
     ) {
         await profileAction.execute(async () => {
             await action();
             await runHardRefresh();
-        }).catch(() => undefined);
+        });
     }
 
 
@@ -161,15 +161,6 @@ export function ProfilesPage() {
                     </>
                 }
             />
-
-            {profileAction.error ? (
-                <Alert variant="destructive">
-                    <AlertTitle className="font-normal">Analyzer action failed</AlertTitle>
-                    <AlertDescription className="font-normal">
-                        {profileAction.error}
-                    </AlertDescription>
-                </Alert>
-            ) : null}
 
             {profilesData?.profiles.length ? (
                 <div className="flex flex-col gap-6">

@@ -1,4 +1,5 @@
 import { useCallback, useReducer } from "react";
+import { toast } from "sonner"; // Shadcn Sonner import
 
 type AsyncActionState =
     | { status: "idle"; error: null }
@@ -43,10 +44,17 @@ export function useAsyncAction(defaultError = "The action failed.") {
             dispatch({ type: "success" })
             return result
         } catch (error) {
+            const message = errorMessage(error, defaultError)
             dispatch({
                 type: "error",
-                error: errorMessage(error, defaultError)
+                error: message
             })
+            
+            // Global Sonner Toast Trigger
+            toast.error(defaultError, {
+                description: message,
+            })
+
             throw error
         }
     }, [defaultError])

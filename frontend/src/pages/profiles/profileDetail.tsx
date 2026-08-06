@@ -9,10 +9,8 @@ import { PageLoading, ResourceError } from "@/components/common/resourceState"
 import { ConnectionBadge } from "@/components/common/statusBadge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { ConfirmAction } from "@/components/common/confirmAction"
 import { Container } from "@/components/common/container"
-import { ToastNotification } from "@/components/common/formError"
 import {
     ArrowLeftIcon,
     CpuIcon,
@@ -112,42 +110,8 @@ export function ProfileDetailPage() {
         await profileAction.execute(async () => {
             await action()
             await Promise.all([healthMutate(), profileMutate()])
-        }).catch(() => undefined)
+        })
     }
-
-    const connectionStatus = !serviceStatus.isRunning
-        ? {
-            title: "Service Offline",
-            description:
-                'Analyzer listener is stopped. Click "Start Analyzer" to activate communications.',
-            icon: (
-                <XCircleIcon
-                    weight="fill"
-                    className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-                />
-            ),
-            className: "bg-muted/40",
-        }
-        : serviceStatus.isConnected
-            ? {
-                title: "Active & Connected",
-                description: `Physical analyzer is connected and transmitting data on ${serviceStatus.endpointDisplay}.`,
-                icon: (
-                    <CheckCircleIcon
-                        weight="fill"
-                        className="mt-0.5 size-5 shrink-0 text-primary"
-                    />
-                ),
-                className: "bg-muted/50",
-            }
-            : {
-                title: "Listening for Analyzer",
-                description: `Service is listening on ${serviceStatus.endpointDisplay}. Waiting for the analyzer to establish a connection.`,
-                icon: (
-                    <RadioIcon className="mt-0.5 size-5 shrink-0 animate-pulse text-primary" />
-                ),
-                className: "bg-muted/50",
-            };
 
     return (
         <Container>
@@ -198,7 +162,7 @@ export function ProfileDetailPage() {
                                 )}
 
                                 <ProfileForm
-                                    drivers={driversList}
+                                    drivers={registeredDriversData}
                                     profile={profileRecord}
                                     onCreated={async () => {
                                         await profileMutate()
@@ -207,7 +171,7 @@ export function ProfileDetailPage() {
 
                                 <ConfirmAction
                                     trigger={
-                                        <Button variant="destructive" size="sm" className="font-normal text-sm">
+                                        <Button variant="destructive" size="sm" className="font-normal text-sm cursor-pointer">
                                             <TrashIcon className="h-4 w-4 mr-1.5" />
                                             <span>Delete</span>
                                         </Button>
@@ -224,15 +188,6 @@ export function ProfileDetailPage() {
                         }
                     />
                 </div>
-
-                <ToastNotification title="Analyzer Action Failed" message={toastError} onClose={() => setToastError(null)} />
-
-                {profileAction.error && (
-                    <Alert variant="destructive">
-                        <AlertTitle className="font-normal">Action Failed</AlertTitle>
-                        <AlertDescription className="font-normal">{profileAction.error}</AlertDescription>
-                    </Alert>
-                )}
 
                 {/* Content Layout Cards */}
                 <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 items-start">
@@ -329,7 +284,7 @@ export function ProfileDetailPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Right Connection Settings Card using ProfileConfigCard */}
+                    {/* Right Connection Settings Card using ProfileConfigDetailCard */}
                     <div className="lg:col-span-2">
                         <ProfileConfigDetailCard
                             config={profileRecord.config}
