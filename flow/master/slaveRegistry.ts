@@ -78,7 +78,7 @@ export class SlaveRegistry {
         const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1_000).toISOString();
         const all = await db.select().from(slaveRegistry)
             .where(eq(slaveRegistry.isActive, true));
-        return all.filter((s) => s.lastPingAt > twoMinutesAgo);
+        return all.filter((s) => s.lastPingAt != null && s.lastPingAt > twoMinutesAgo);
     }
 
     /** Returns every registered slave regardless of activity or ping recency. */
