@@ -62,7 +62,7 @@ if (import.meta.main) {
   app.use("*", cors())
 
   // dashboard routes
-  registerDashboardRoutes(app, slaveRegistry!);
+  registerDashboardRoutes(app, slaveRegistry!, syncClient!);
 
   // slave-sync routes only exist on "master" - slaves call these to register, ping, pull orders, upload results
   if (slaveRegistry) {

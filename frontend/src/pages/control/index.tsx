@@ -1,3 +1,8 @@
+import { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
 import { Container } from "@/components/common/container";
 import { PageSection } from "@/components/common/pageSection";
 import { ResourceEmpty } from "@/components/common/resourceState";
@@ -5,13 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction }
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShareNetworkIcon, PlugsConnectedIcon, DesktopIcon, CopyIcon, CheckIcon, WarningIcon, TrashIcon } from "@phosphor-icons/react";
+import { ShareNetworkIcon, PlugsConnectedIcon, DesktopIcon, WarningIcon, TrashIcon, StopIcon } from "@phosphor-icons/react";
 import { api } from "@/lib/api";
 import { ConfirmAction } from "@/components/common/confirmAction";
 import { RefreshButton, ResourceError, PageLoading } from "@/components/common/resourceState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StopIcon } from "@phosphor-icons/react";
 import { FormErrorList } from "@/components/common/formError";
 import { useAsyncAction } from "@/hooks/use-async-action";
 import {
@@ -20,17 +24,22 @@ import {
     DialogHeader,
     DialogTitle,
     DialogDescription,
-    DialogFooter,
+    DialogFooter
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { useState, useCallback } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import type { SlaveRecord, SlaveCredentials, SlaveLiveness } from "../../types/api.ts";
 import { slaveLiveness } from "@/lib/helpers";
 import { useMachineContext } from "@/contexts/machine-context";
+import { ControlSlaveResults } from "./results.tsx";
+import { ControlSlaveOrders } from "./orders.tsx";
+import { CopyButton } from "@/components/common/copyButton";
 
 const slaveStatusLabel: Record<SlaveLiveness, string> = {
     online: "Online",
@@ -75,7 +84,6 @@ export function ControlPage() {
                     </div>
                 }
             />
-
             {/* Stat Cards */}
             <div className="grid gap-3 grid-cols-3">
                 <StatCard
@@ -97,6 +105,14 @@ export function ControlPage() {
                     icon={DesktopIcon}
                 />
             </div>
+          <Tabs defaultValue="slaves">
+      <TabsList>
+        <TabsTrigger value="slaves">Registered Slaves</TabsTrigger>
+        <TabsTrigger value="orders">Orders</TabsTrigger>
+        <TabsTrigger value="results">Results</TabsTrigger>
+      </TabsList>
+      <TabsContent value="slaves">
+            
 
             {/* Slave List */}
             {slaves.length > 0 ? (
@@ -216,12 +232,17 @@ export function ControlPage() {
                     description="When slave agents register to this master, they will appear here."
                 />
             )}
+            </TabsContent>
+            <TabsContent value="orders">
+                <ControlSlaveOrders />
+            </TabsContent>
+            <TabsContent value="results">
+                <ControlSlaveResults />
+            </TabsContent>
+            </Tabs>
         </Container>
     );
 }
-
-
-// Register Slave Button + Dialog 
 
 const registerSlaveSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters").trim()
@@ -361,33 +382,6 @@ function SlaveCredentialsReveal({
     );
 }
 
-
-// Copy Button
-function CopyButton({ value }: { value: string }) {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = useCallback(async () => {
-        try {
-            await navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            // fallback: do nothing
-        }
-    }, [value]);
-
-    return (
-        <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="shrink-0"
-            onClick={handleCopy}
-        >
-            {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
-        </Button>
-    );
-}
 
 
 // Stat Card

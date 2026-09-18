@@ -11,6 +11,11 @@ import {
 import { PageLoading, ResourceEmpty, ResourceError } from "@/components/common/resourceState";
 import { ExternalOrderStatusBadge } from "@/components/common/statusBadge";
 import { Pagination } from "@/components/common/pagination";
+import { ConfirmAction } from "@/components/common/confirmAction";
+import { Button } from "@/components/ui/button";
+import { XCircleIcon } from "@phosphor-icons/react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 
 interface ExternalOrdersProps {
@@ -20,6 +25,7 @@ interface ExternalOrdersProps {
     page: number;
     totalPages: number;
     onPageChange: (page: number) => void;
+    onRefresh: () => void;
 }
 
 export function ExternalOrders({
@@ -29,6 +35,7 @@ export function ExternalOrders({
     page,
     totalPages,
     onPageChange,
+    onRefresh,
 }: ExternalOrdersProps) {
 
     if (error) return <ResourceError error={error} onRetry={onRetry} />;
@@ -55,6 +62,7 @@ export function ExternalOrders({
                             <TableHead className="font-normal">Status</TableHead>
                             <TableHead className="font-normal">Agent Order</TableHead>
                             <TableHead className="font-normal">Received At</TableHead>
+                            <TableHead className="text-right font-normal">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -84,6 +92,29 @@ export function ExternalOrders({
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-xs font-mono font-normal">
                                     {new Date(order.receivedAt).toLocaleString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {(order.status === "received" || order.status === "acknowledged") ? (
+                                        <ConfirmAction
+                                            trigger={
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-xs"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                >
+                                                    <XCircleIcon />
+                                                </Button>
+                                            }
+                                            title="Reject Order"
+                                            description={`Are you sure you want to reject order ${order.dispatchId}? This will mark it as failed and notify MediCloud.`}
+                                            actionLabel="Reject"
+                                            onConfirm={async () => {
+                                                await api.externalOrders.reject(order.id);
+                                                toast.success("Order rejected successfully");
+                                                onRefresh();
+                                            }}
+                                        />
+                                    ) : null}
                                 </TableCell>
                             </TableRow>
                         ))}
