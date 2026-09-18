@@ -1,6 +1,6 @@
 import { and, count, desc, eq, or, isNotNull } from "drizzle-orm";
 import { db } from "../index.ts";
-import { medicloudResultDispatch, syncOrderInbox } from "../schema.ts";
+import { medicloudResultDispatch, syncOrderInbox, slaveRegistry } from "../schema.ts";
 import type { ListPage, ListQuery } from "../../types.ts";
 import { contains, toDeliveryStatus, toOrderStatus } from "../../lib/utils.ts";
 
@@ -75,20 +75,47 @@ export async function listSlaveOrders(
 
     const orderStatus = toOrderStatus(status);
     const where = and(
-        search ? contains(syncOrderInbox.dispatchId, search) : undefined,
+        search ? or(
+            contains(syncOrderInbox.dispatchId, search),
+            contains(syncOrderInbox.targetSlaveId, search),
+            contains(slaveRegistry.instanceId, search)
+        ) : undefined,
         orderStatus ? eq(syncOrderInbox.status, orderStatus) : undefined,
         isNotNull(syncOrderInbox.targetSlaveId),
     );
 
     const [rows, totals] = await Promise.all([
         db
-            .select()
+            .select({
+                id: syncOrderInbox.id,
+                dispatchId: syncOrderInbox.dispatchId,
+                leaseId: syncOrderInbox.leaseId,
+                profileKey: syncOrderInbox.profileKey,
+                driverId: syncOrderInbox.driverId,
+                targetSlaveId: syncOrderInbox.targetSlaveId,
+                payloadJson: syncOrderInbox.payloadJson,
+                agentOrderId: syncOrderInbox.agentOrderId,
+                status: syncOrderInbox.status,
+                errorText: syncOrderInbox.errorText,
+                receivedAt: syncOrderInbox.receivedAt,
+                acknowledgedAt: syncOrderInbox.acknowledgedAt,
+                submittedAt: syncOrderInbox.submittedAt,
+                completedAt: syncOrderInbox.completedAt,
+                downstreamLeaseId: syncOrderInbox.downstreamLeaseId,
+                downstreamLeaseExpiresAt: syncOrderInbox.downstreamLeaseExpiresAt,
+                createdAt: syncOrderInbox.createdAt,
+                updatedAt: syncOrderInbox.updatedAt,
+            })
             .from(syncOrderInbox)
+            .leftJoin(slaveRegistry, eq(syncOrderInbox.targetSlaveId, slaveRegistry.slaveId))
             .where(where)
             .orderBy(desc(syncOrderInbox.receivedAt))
             .limit(limit)
             .offset(offset),
-        db.select({ total: count() }).from(syncOrderInbox).where(where),
+        db.select({ total: count() })
+            .from(syncOrderInbox)
+            .leftJoin(slaveRegistry, eq(syncOrderInbox.targetSlaveId, slaveRegistry.slaveId))
+            .where(where),
     ]);
 
     return { rows, count: totals[0]?.total ?? 0 };
@@ -107,6 +134,8 @@ export async function listSlaveResults(
                 contains(medicloudResultDispatch.medicloudDispatchId, search),
                 contains(medicloudResultDispatch.medicloudOrderId, search),
                 contains(medicloudResultDispatch.idempotencyKey, search),
+                contains(syncOrderInbox.targetSlaveId, search),
+                contains(slaveRegistry.instanceId, search)
             )
             : undefined,
         deliveryStatus !== undefined
@@ -133,6 +162,7 @@ export async function listSlaveResults(
             })
             .from(medicloudResultDispatch)
             .innerJoin(syncOrderInbox, eq(medicloudResultDispatch.medicloudDispatchId, syncOrderInbox.dispatchId))
+            .leftJoin(slaveRegistry, eq(syncOrderInbox.targetSlaveId, slaveRegistry.slaveId))
             .where(where)
             .orderBy(desc(medicloudResultDispatch.createdAt))
             .limit(limit)
@@ -140,6 +170,7 @@ export async function listSlaveResults(
         db.select({ total: count() })
             .from(medicloudResultDispatch)
             .innerJoin(syncOrderInbox, eq(medicloudResultDispatch.medicloudDispatchId, syncOrderInbox.dispatchId))
+            .leftJoin(slaveRegistry, eq(syncOrderInbox.targetSlaveId, slaveRegistry.slaveId))
             .where(where),
     ]);
 

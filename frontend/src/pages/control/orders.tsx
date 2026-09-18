@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { api, type ExternalQuery } from "@/lib/api";
 import { ITEMS_PER_PAGE, pageCount } from "@/lib/global";
 import { XCircleIcon } from "@phosphor-icons/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useReducer } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
+import { useDebounceCallback } from "@/hooks/use-debounce-callback";
 
 const orderStatuses: { value: string; label: string }[] = [
     { value: "all", label: "All statuses" },
@@ -24,11 +25,46 @@ const orderStatuses: { value: string; label: string }[] = [
     { value: "failed", label: "Failed" },
 ];
 
+
+
+type FilterState = {
+    search: string;      // raw input value
+    committed: string;   // debounced value used in the query
+    status: string;
+    page: number;
+};
+
+type FilterAction =
+    | { type: "SET_SEARCH_INPUT"; value: string }   // just typing, no query change
+    | { type: "COMMIT_SEARCH"; value: string }       // debounce fired
+    | { type: "SET_STATUS"; value: string }
+    | { type: "SET_PAGE"; value: number };
+
+const initialState: FilterState = {
+    search: "",
+    committed: "",
+    status: "",
+    page: 1,
+};
+
+function filterReducer(state: FilterState, action: FilterAction): FilterState {
+    switch (action.type) {
+        case "SET_SEARCH_INPUT":
+            return { ...state, search: action.value };
+        case "COMMIT_SEARCH":
+            return { ...state, committed: action.value, page: 1 };
+        case "SET_STATUS":
+            return { ...state, status: action.value, page: 1 };
+        case "SET_PAGE":
+            return { ...state, page: action.value };
+        default:
+            return state;
+    }
+}
+
 export function ControlSlaveOrders() {
-    const [search, setSearch] = useState("");
-    const [committed, setCommitted] = useState("");
-    const [status, setStatus] = useState("");
-    const [page, setPage] = useState(1);
+    const [state, dispatch] = useReducer(filterReducer, initialState);
+    const { search, committed, status, page } = state;
 
     const query = useMemo<ExternalQuery>(() => ({
         search: committed || undefined,
@@ -45,15 +81,21 @@ export function ControlSlaveOrders() {
 
     const totalPages = pageCount({ page, rows: 0, total: data?.count ?? 0 });
 
+    const debouncedCommit = useDebounceCallback((value: string) => {
+        dispatch({ type: "COMMIT_SEARCH", value });
+    }, 400);
+
     const handleSearch = useCallback((value: string) => {
-        setSearch(value);
-        const id = setTimeout(() => { setCommitted(value); setPage(1); }, 400);
-        return () => clearTimeout(id);
-    }, []);
+        dispatch({ type: "SET_SEARCH_INPUT", value });
+        debouncedCommit(value);
+    }, [debouncedCommit]);
 
     const handleStatus = useCallback((value: string | null) => {
-        setStatus(value === "all" || value === null ? "" : value);
-        setPage(1);
+        dispatch({ type: "SET_STATUS", value: value === "all" || value === null ? "" : value });
+    }, []);
+
+    const setPage = useCallback((value: number) => {
+        dispatch({ type: "SET_PAGE", value });
     }, []);
 
     const refresh = useCallback(() => void mutate(), [mutate]);
@@ -65,8 +107,8 @@ export function ControlSlaveOrders() {
             {/* Filters */}
             <div className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
                 <Input
-                    aria-label="Search dispatch ID"
-                    placeholder="Search dispatch ID"
+                    aria-label="Search dispatch, slave ID, or name"
+                    placeholder="Search dispatch, slave ID, or name"
                     className="font-normal"
                     value={search}
                     onChange={(e) => handleSearch(e.target.value)}

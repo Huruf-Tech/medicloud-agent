@@ -107,7 +107,7 @@ export function ControlPage() {
             </div>
           <Tabs defaultValue="slaves">
       <TabsList>
-        <TabsTrigger value="slaves">Registered Slaves</TabsTrigger>
+        <TabsTrigger value="slaves">Slaves</TabsTrigger>
         <TabsTrigger value="orders">Orders</TabsTrigger>
         <TabsTrigger value="results">Results</TabsTrigger>
       </TabsList>
