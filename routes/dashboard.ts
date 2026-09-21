@@ -4,7 +4,11 @@ import { env } from "../lib/env.ts";
 import { MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE } from "../lib/constants.ts";
 import type { SlaveRegistry } from "../flow/master/slaveRegistry.ts";
 import { fetchMachineHealth } from "../lib/endpoints.ts";
-import { listExternalOrders, listExternalResults } from "../db/queries/external.ts";
+import { listExternalOrders, listExternalResults, listSlaveOrders, listSlaveResults } from "../db/queries/external.ts";
+import { db } from "../db/index.ts";
+import { syncOrderInbox } from "../db/schema.ts";
+import { eq, and } from "drizzle-orm";
+import type { SyncClient } from "../flow/sync/client.ts";
 
 
 /** Reads the search/status/limit/offset query shared by both external lists. */
@@ -37,7 +41,7 @@ async function readJson(c: Context, read: () => Promise<unknown>) {
     }
 }
 
-export function registerDashboardRoutes(app: Hono, slaveRegistry: SlaveRegistry | undefined): void {
+export function registerDashboardRoutes(app: Hono, slaveRegistry: SlaveRegistry | undefined, cloudClient: SyncClient | undefined): void {
 
     // System info - intercepts the SDK's /health to inject agent mode and version.
     app.get("/info", async (c) => {
@@ -133,6 +137,60 @@ export function registerDashboardRoutes(app: Hono, slaveRegistry: SlaveRegistry 
             return { results: rows, count };
         })
     );
+
+    // Slave-scoped orders - orders that were routed to a downstream slave.
+    app.get("/slave-orders", (c) =>
+        readJson(c, async () => {
+            const { rows, count } = await listSlaveOrders(listQuery(c));
+            return { orders: rows, count };
+        })
+    );
+
+    // Slave-scoped results - results originating from slave-processed orders.
+    app.get("/slave-results", (c) =>
+        readJson(c, async () => {
+            const { rows, count } = await listSlaveResults(listQuery(c));
+            return { results: rows, count };
+        })
+    );
+
+    // Reject a pending external order from the master dashboard.
+    // Only orders in "received" or "acknowledged" status can be rejected.
+    app.post("/external-orders/:id/reject", async (c) => {
+        const id = Number(c.req.param("id"));
+        if (!Number.isFinite(id)) {
+            return c.json({ error: "Invalid order ID" }, 400);
+        }
+
+        const [row] = await db.select().from(syncOrderInbox).where(eq(syncOrderInbox.id, id)).limit(1);
+        if (!row) {
+            return c.json({ error: "Order not found" }, 404);
+        }
+
+        if (row.status !== "received" && row.status !== "acknowledged") {
+            return c.json({ error: "Only pending orders (received/acknowledged) can be rejected" }, 400);
+        }
+
+        const now = new Date().toISOString();
+        await db.update(syncOrderInbox).set({
+            status: "failed",
+            errorText: "Rejected by operator",
+            updatedAt: now,
+        }).where(eq(syncOrderInbox.id, id));
+
+        // Report rejection upstream (fire-and-forget).
+        if (cloudClient) {
+            cloudClient.reportStatus([{
+                dispatchId: row.dispatchId,
+                status: "failed",
+                message: "Rejected by operator from master dashboard",
+            }]).catch((error) =>
+                console.error("[dashboard] Failed to report rejection upstream:", error)
+            );
+        }
+
+        return c.json({ success: true });
+    });
 
     // Serve pre-built frontend assets under /dashboard/*
     app.use(

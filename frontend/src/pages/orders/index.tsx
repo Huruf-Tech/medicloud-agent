@@ -202,6 +202,7 @@ export function OrdersPage() {
                         page={page}
                         totalPages={totalPages}
                         onPageChange={setPage}
+                        onRefresh={refresh}
                     />
                 </TabsContent>
             </Tabs>

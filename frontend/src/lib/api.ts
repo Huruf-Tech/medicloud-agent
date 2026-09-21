@@ -158,12 +158,25 @@ export const api = {
         listKey: (query: ExternalQuery = {}) => ["externalOrders.list", query] as const,
         list: (query: ExternalQuery = {}) =>
             request<{ orders: ExternalOrder[]; count: number }>("/external-orders", { query }),
+        reject: (id: number) => request<{ success: boolean }>(`/external-orders/${id}/reject`, { method: "POST" }),
     },
 
     externalResults: {
         listKey: (query: ExternalQuery = {}) => ["externalResults.list", query] as const,
         list: (query: ExternalQuery = {}) =>
             request<{ results: ExternalResult[]; count: number }>("/external-results", { query }),
+    },
+
+    slaveOrders: {
+        listKey: (query: ExternalQuery = {}) => ["slaveOrders.list", query] as const,
+        list: (query: ExternalQuery = {}) =>
+            request<{ orders: ExternalOrder[]; count: number }>("/slave-orders", { query }),
+    },
+
+    slaveResults: {
+        listKey: (query: ExternalQuery = {}) => ["slaveResults.list", query] as const,
+        list: (query: ExternalQuery = {}) =>
+            request<{ results: ExternalResult[]; count: number }>("/slave-results", { query }),
     },
 }
 
