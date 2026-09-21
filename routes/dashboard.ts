@@ -7,7 +7,7 @@ import { fetchMachineHealth } from "../lib/endpoints.ts";
 import { listExternalOrders, listExternalResults, listSlaveOrders, listSlaveResults } from "../db/queries/external.ts";
 import { db } from "../db/index.ts";
 import { syncOrderInbox } from "../db/schema.ts";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { SyncClient } from "../flow/sync/client.ts";
 
 
@@ -81,19 +81,16 @@ export function registerDashboardRoutes(app: Hono, slaveRegistry: SlaveRegistry 
             return c.json({ error: "Slave registration is only available in master mode" }, 400);
         }
 
-        const body = await c.req.json().catch(() => ({}));
-        const name = typeof body.name === "string" ? body.name.trim() : "";
-
-        if (!name) {
-            return c.json({ error: "Name is required" }, 400);
-        }
-
-        // Use the name as a stable instanceId prefix so re-registration by
-        // the same name refreshes credentials instead of creating duplicates.
-        const instanceId = `manual:${name}`;
-
-        const { slaveId, slaveSecret } = await slaveRegistry.register(instanceId);
+        const { slaveId, slaveSecret } = await slaveRegistry.register();
         return c.json({ slaveId, slaveSecret });
+    });
+
+    // Get a single slave by ID.
+    app.get("/slaves/:slaveId", async (c) => {
+        if (!slaveRegistry) return c.json({ error: "Not in master mode" }, 400);
+        const slave = await slaveRegistry.getBySlaveId(c.req.param("slaveId"));
+        if (!slave) return c.json({ error: "Slave not found" }, 404);
+        return c.json({ slave });
     });
 
     // Mark a slave as inactive

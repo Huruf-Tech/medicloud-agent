@@ -246,7 +246,17 @@ export interface ExternalOrder {
 
 // external result (medicloudResultDispatch) types
 export type ResultDeliveryStatus = 0 | 1 | 2 | 3
+export const slaveStatusLabel: Record<SlaveLiveness, string> = {
+    online: "Online",
+    stale: "Unreachable",
+    never: "Never Connected",
+};
 
+export const slaveStatusVariant: Record<SlaveLiveness, "default" | "secondary" | "outline"> = {
+    online: "default",
+    stale: "secondary",
+    never: "outline",
+};
 export interface ExternalResult {
   id: number
   agentResultId: number | null
