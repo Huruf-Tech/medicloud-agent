@@ -1,4 +1,4 @@
-import type { ApiErrorBody, CatalogDetail, SlaveRecord, SlaveCredentials, CatalogSummary, Driver, ExternalOrder, ExternalResult, MachineResponse, MachineOrder, MachineProfile, MachineResult, OrderStatus, TestStatistic, TProfileQuery } from "@/types/api"
+import type { ApiErrorBody, CatalogDetail, SlaveRecord, SlaveCredentials, CatalogSummary, Driver, AgentOrder, ExternalResult, MachineResponse, MachineOrder, MachineProfile, MachineResult, OrderStatus, TestStatistic, TProfileQuery } from "@/types/api"
 import { ApiError, json } from "./helpers"
 import type { OrderPayload, ProfilePayload } from "./schema"
 
@@ -154,11 +154,23 @@ export const api = {
         remove: (statisticId: number) => request<void>(`/test-statistics/${statisticId}`, { method: "DELETE" }),
     },
 
-    externalOrders: {
-        listKey: (query: ExternalQuery = {}) => ["externalOrders.list", query] as const,
+    agentOrders: {
+        listKey: (query: ExternalQuery = {}) => ["agentOrders.list", query] as const,
         list: (query: ExternalQuery = {}) =>
-            request<{ orders: ExternalOrder[]; count: number }>("/external-orders", { query }),
-        reject: (id: number) => request<{ success: boolean }>(`/external-orders/${id}/reject`, { method: "POST" }),
+            request<{ orders: AgentOrder[]; count: number }>("/agent-orders", { query }),
+        reject: (id: number) => request<{ success: boolean }>(`/agent-orders/${id}/reject`, { method: "POST" }),
+
+
+        create: (input: OrderPayload) =>
+            request<{ order: AgentOrder }>("/agent-orders", json("POST", input)),
+
+        update: (id: number, input: OrderPayload) =>
+            request<{ order: AgentOrder }>(`/agent-orders/${id}`, json("PATCH", input)),
+
+        remove: (id: number) =>
+            request<{ success: true; id: number }>(`/agent-orders/${id}`, {
+                method: "DELETE",
+            }),
     },
 
     externalResults: {
@@ -170,7 +182,7 @@ export const api = {
     slaveOrders: {
         listKey: (query: ExternalQuery = {}) => ["slaveOrders.list", query] as const,
         list: (query: ExternalQuery = {}) =>
-            request<{ orders: ExternalOrder[]; count: number }>("/slave-orders", { query }),
+            request<{ orders: AgentOrder[]; count: number }>("/slave-orders", { query }),
     },
 
     slaveResults: {

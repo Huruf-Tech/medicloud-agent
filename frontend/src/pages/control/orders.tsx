@@ -1,7 +1,7 @@
 import { ConfirmAction } from "@/components/common/confirmAction";
 import { Pagination } from "@/components/common/pagination";
 import { PageLoading, ResourceEmpty, ResourceError } from "@/components/common/resourceState";
-import { ExternalOrderStatusBadge } from "@/components/common/statusBadge";
+import { AgentOrderStatusBadge } from "@/components/common/statusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -175,7 +175,7 @@ export function ControlSlaveOrders() {
                                             {order.driverId}
                                         </TableCell>
                                         <TableCell className="font-normal">
-                                            <ExternalOrderStatusBadge status={order.status} />
+                                            <AgentOrderStatusBadge status={order.status} />
                                         </TableCell>
                                         <TableCell className="text-muted-foreground text-xs font-mono font-normal">
                                             {new Date(order.receivedAt).toLocaleString()}
@@ -196,7 +196,7 @@ export function ControlSlaveOrders() {
                                                     description={`Are you sure you want to reject order ${order.dispatchId}? This will mark it as failed and notify MediCloud.`}
                                                     actionLabel="Reject"
                                                     onConfirm={async () => {
-                                                        await api.externalOrders.reject(order.id);
+                                                        await api.agentOrders.reject(order.id);
                                                         toast.success("Order rejected successfully");
                                                         refresh();
                                                     }}
