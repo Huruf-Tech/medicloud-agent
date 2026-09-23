@@ -170,7 +170,7 @@ export function ControlSlaveOrders() {
                                             {order.driverId}
                                         </TableCell>
                                         <TableCell className="font-normal">
-                                            <ExternalOrderStatusBadge status={order.status} />
+                                            <AgentOrderStatusBadge status={order.status} />
                                         </TableCell>
                                         <TableCell className="text-muted-foreground text-xs font-mono font-normal">
                                             {new Date(order.receivedAt).toLocaleString()}
