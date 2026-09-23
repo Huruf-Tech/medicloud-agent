@@ -239,62 +239,23 @@ export function registerDashboardRoutes(
     const slaveId = c.req.param("slaveId");
     const found = await slaveRegistry.markInactive(slaveId);
 
-    if (!found) {
-      return c.json({ error: "Slave not found" }, 404);
-    }
+        const { slaveId, slaveSecret } = await slaveRegistry.register();
+        return c.json({ slaveId, slaveSecret });
+    });
 
-    return c.json({ success: true });
-  });
+    // Get a single slave by ID.
+    app.get("/slaves/:slaveId", async (c) => {
+        if (!slaveRegistry) return c.json({ error: "Not in master mode" }, 400);
+        const slave = await slaveRegistry.getBySlaveId(c.req.param("slaveId"));
+        if (!slave) return c.json({ error: "Slave not found" }, 404);
+        return c.json({ slave });
+    });
 
-  // Permanently delete a slave from the registry.
-  app.post("/slaves/:slaveId/delete", async (c) => {
-    if (!slaveRegistry) return c.json({ success: false }, 400);
-    const slaveId = c.req.param("slaveId");
-    const found = await slaveRegistry.delete(slaveId);
-
-    if (!found) {
-      return c.json({ error: "Slave not found" }, 404);
-    }
-
-    return c.json({ success: true });
-  });
-
-  // Agent orders - paged view of the agent's syncOrderInbox table, holding
-  // both MediCloud dispatches and orders created on this agent.
-  app.get("/agent-orders", (c) =>
-    readJson(c, async () => {
-      const { rows, count } = await listAgentOrders(listQuery(c));
-      return { orders: await withMachineStatus(rows), count };
-    }));
-
-  // External results - paged view of the agent's medicloudResultDispatch table.
-  app.get("/external-results", (c) =>
-    readJson(c, async () => {
-      const { rows, count } = await listExternalResults(listQuery(c));
-      return { results: rows, count };
-    }));
-
-  // Slave-scoped orders - orders that were routed to a downstream slave.
-  app.get("/slave-orders", (c) =>
-    readJson(c, async () => {
-      const { rows, count } = await listSlaveOrders(listQuery(c));
-      return { orders: rows, count };
-    }));
-
-  // Slave-scoped results - results originating from slave-processed orders.
-  app.get("/slave-results", (c) =>
-    readJson(c, async () => {
-      const { rows, count } = await listSlaveResults(listQuery(c));
-      return { results: rows, count };
-    }));
-
-  // Reject a pending upstream order from the master dashboard.
-  // Only orders in "received" or "acknowledged" status can be rejected.
-  app.post("/agent-orders/:id/reject", async (c) => {
-    const id = Number(c.req.param("id"));
-    if (!Number.isFinite(id)) {
-      return c.json({ error: "Invalid order ID" }, 400);
-    }
+    // Mark a slave as inactive
+    app.post("/slaves/:slaveId/inactive", async (c) => {
+        if (!slaveRegistry) return c.json({ success: false }, 400);
+        const slaveId = c.req.param("slaveId");
+        const found = await slaveRegistry.markInactive(slaveId);
 
     const [row] = await db.select().from(syncOrderInbox).where(
       eq(syncOrderInbox.id, id),
