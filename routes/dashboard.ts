@@ -252,7 +252,7 @@ export function registerDashboardRoutes(
   });
 
   // External orders - paged view of the agent's syncOrderInbox table.
-  app.get("/external-orders", (c) =>
+  app.get("/agent-orders", (c) =>
     readJson(c, async () => {
       const { rows, count } = await listAgentOrders(listQuery(c));
       return { orders: rows, count };
