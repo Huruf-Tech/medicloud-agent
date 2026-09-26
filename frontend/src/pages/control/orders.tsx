@@ -1,6 +1,6 @@
 import { Pagination } from "@/components/common/pagination";
 import { PageLoading, ResourceEmpty, ResourceError } from "@/components/common/resourceState";
-import { ExternalOrderStatusBadge } from "@/components/common/statusBadge";
+import { AgentOrderStatusBadge } from "@/components/common/statusBadge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

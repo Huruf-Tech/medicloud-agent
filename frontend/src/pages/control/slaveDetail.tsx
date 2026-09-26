@@ -5,7 +5,7 @@ import { api, type ExternalQuery } from "@/lib/api"
 import { useAsyncAction } from "@/hooks/use-async-action"
 import { PageSection } from "@/components/common/pageSection"
 import { PageLoading, ResourceError, ResourceEmpty } from "@/components/common/resourceState"
-import { ConnectionBadge, ExternalOrderStatusBadge, ResultDeliveryStatusBadge } from "@/components/common/statusBadge"
+import { AgentOrderStatusBadge, ConnectionBadge, ResultDeliveryStatusBadge } from "@/components/common/statusBadge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -407,7 +407,7 @@ function SlaveOrdersTab({ slaveId }: { slaveId: string }) {
                                     {order.driverId}
                                 </TableCell>
                                 <TableCell className="font-normal">
-                                    <ExternalOrderStatusBadge status={order.status} />
+                                    <AgentOrderStatusBadge status={order.status} />
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-xs font-mono font-normal">
                                     {new Date(order.receivedAt).toLocaleString()}
